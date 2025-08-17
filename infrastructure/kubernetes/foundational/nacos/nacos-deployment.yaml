@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nacos
+  namespace: offerkiller-system
+  labels:
+    app: nacos
+    version: v2.3.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nacos
+  template:
+    metadata:
+      labels:
+        app: nacos
+        version: v2.3.0
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: nacos
+        image: nacos/nacos-server:v2.3.0
+        ports:
+        - containerPort: 8848
+          name: http
+        - containerPort: 9848
+          name: grpc
+        - containerPort: 9849
+          name: rpc
+        env:
+        - name: MODE
+          value: "standalone"
+        - name: PREFER_HOST_MODE
+          value: "hostname"
+        - name: SPRING_DATASOURCE_PLATFORM
+          value: "mysql"
+        - name: MYSQL_SERVICE_HOST
+          value: "mysql"
+        - name: MYSQL_SERVICE_PORT
+          value: "3306"
+        - name: MYSQL_SERVICE_DB_NAME
+          value: "nacos"
+        - name: MYSQL_SERVICE_USER
+          value: "nacos"
+        - name: MYSQL_SERVICE_PASSWORD
+          value: "nacos123"
+        - name: NACOS_APPLICATION_PORT
+          value: "8848"
+        - name: NACOS_SERVER_IP
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: nacos-data
+          mountPath: /home/nacos/data
+        - name: nacos-logs
+          mountPath: /home/nacos/logs
+        - name: nacos-config
+          mountPath: /home/nacos/conf/application.properties
+          subPath: application.properties
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /nacos/actuator/health
+            port: 8848
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /nacos/actuator/health
+            port: 8848
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: nacos-data
+        persistentVolumeClaim:
+          claimName: nacos-data-pvc
+      - name: nacos-logs
+        persistentVolumeClaim:
+          claimName: nacos-logs-pvc
+      - name: nacos-config
+        configMap:
+          name: nacos-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos
+  namespace: offerkiller-system
+  labels:
+    app: nacos
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8848
+    targetPort: 8848
+    protocol: TCP
+    name: http
+  - port: 9848
+    targetPort: 9848
+    protocol: TCP
+    name: grpc
+  - port: 9849
+    targetPort: 9849
+    protocol: TCP
+    name: rpc
+  selector:
+    app: nacos
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nacos-nodeport
+  namespace: offerkiller-system
+  labels:
+    app: nacos
+spec:
+  type: NodePort
+  ports:
+  - port: 8848
+    targetPort: 8848
+    protocol: TCP
+    name: http
+    nodePort: 30848
+  selector:
+    app: nacos

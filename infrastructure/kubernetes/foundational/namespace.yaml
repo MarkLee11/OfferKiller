@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: offerkiller-system
+  labels:
+    name: offerkiller-system
+    purpose: foundational-services
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: offerkiller-app
+  labels:
+    name: offerkiller-app
+    purpose: application-services
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: offerkiller-monitoring
+  labels:
+    name: offerkiller-monitoring
+    purpose: monitoring-services
+    istio-injection: disabled

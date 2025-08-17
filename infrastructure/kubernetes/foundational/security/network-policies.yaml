@@ -1,0 +1,111 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nacos-network-policy
+  namespace: offerkiller-system
+spec:
+  podSelector:
+    matchLabels:
+      app: nacos
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: offerkiller-app
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    - namespaceSelector:
+        matchLabels:
+          name: offerkiller-monitoring
+    ports:
+    - protocol: TCP
+      port: 8848
+    - protocol: TCP
+      port: 9848
+    - protocol: TCP
+      port: 9849
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: mysql-nacos
+    ports:
+    - protocol: TCP
+      port: 3306
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql-nacos-network-policy
+  namespace: offerkiller-system
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql-nacos
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nacos
+    ports:
+    - protocol: TCP
+      port: 3306
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-services-network-policy
+  namespace: offerkiller-app
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: offerkiller-app
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: offerkiller-system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: offerkiller-app
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443

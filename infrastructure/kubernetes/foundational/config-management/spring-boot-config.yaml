@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-boot-common-config
+  namespace: offerkiller-app
+data:
+  application.yml: |
+    spring:
+      application:
+        name: ${SPRING_APPLICATION_NAME:unknown-service}
+      profiles:
+        active: ${SPRING_PROFILES_ACTIVE:dev}
+      cloud:
+        nacos:
+          discovery:
+            server-addr: nacos.offerkiller-system.svc.cluster.local:8848
+            namespace: ${NACOS_NAMESPACE:public}
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            metadata:
+              version: ${SERVICE_VERSION:1.0.0}
+              zone: ${DEPLOYMENT_ZONE:default}
+          config:
+            server-addr: nacos.offerkiller-system.svc.cluster.local:8848
+            file-extension: yml
+            namespace: ${NACOS_NAMESPACE:public}
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            shared-configs:
+              - data-id: common-config.yml
+                group: DEFAULT_GROUP
+                refresh: true
+      datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:offerkiller}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+        username: ${MYSQL_USERNAME:offerkilleruser}
+        password: ${MYSQL_PASSWORD:offerkillerpass123}
+        hikari:
+          maximum-pool-size: ${DB_POOL_SIZE:20}
+          minimum-idle: ${DB_POOL_MIN_IDLE:5}
+          idle-timeout: 300000
+          max-lifetime: 1800000
+      redis:
+        host: ${REDIS_HOST:redis}
+        port: ${REDIS_PORT:6379}
+        password: ${REDIS_PASSWORD:}
+        database: ${REDIS_DATABASE:0}
+        timeout: 2000ms
+        lettuce:
+          pool:
+            max-active: ${REDIS_POOL_MAX_ACTIVE:10}
+            max-idle: ${REDIS_POOL_MAX_IDLE:8}
+            min-idle: ${REDIS_POOL_MIN_IDLE:0}
+      rabbitmq:
+        host: ${RABBITMQ_HOST:rabbitmq}
+        port: ${RABBITMQ_PORT:5672}
+        username: ${RABBITMQ_USERNAME:offerkilleruser}
+        password: ${RABBITMQ_PASSWORD:offerkillerpass123}
+        virtual-host: ${RABBITMQ_VHOST:offerkiller}
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+    
+    logging:
+      level:
+        com.offerkiller: ${LOG_LEVEL:INFO}
+        org.springframework.cloud.gateway: ${GATEWAY_LOG_LEVEL:INFO}
+      pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId},%X{spanId}] %logger{36} - %msg%n"
+      file:
+        name: /app/logs/${spring.application.name}.log
+        max-size: 100MB
+        max-history: 30
+    
+    offerkiller:
+      ai:
+        services:
+          base-url: http://python-ai.offerkiller-app.svc.cluster.local:8090
+          timeout: 60s
+          retry:
+            max-attempts: 3
+            delay: 1s
+      security:
+        jwt:
+          secret: ${JWT_SECRET:offerkiller-jwt-secret-key-change-in-production}
+          expiration: ${JWT_EXPIRATION:86400}
+      monitoring:
+        tracing:
+          enabled: true
+          sampling-rate: ${TRACING_SAMPLING_RATE:0.1}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spring-boot-secrets
+  namespace: offerkiller-app
+type: Opaque
+data:
+  mysql-password: b2ZmZXJraWxsZXJwYXNzMTIz  # offerkillerpass123
+  redis-password: ""                          # empty for development
+  rabbitmq-password: b2ZmZXJraWxsZXJwYXNzMTIz  # offerkillerpass123
+  jwt-secret: b2ZmZXJraWxsZXItand0LXNlY3JldC1rZXktY2hhbmdlLWluLXByb2R1Y3Rpb24=

@@ -1,0 +1,69 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: offerkiller-gateway
+  namespace: offerkiller-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: offerkiller-tls-secret
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: nacos-gateway
+  namespace: offerkiller-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 8848
+      name: nacos-http
+      protocol: HTTP
+    hosts:
+    - nacos.offerkiller.local
+    - localhost
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway-nodeport
+  namespace: istio-system
+  labels:
+    app: istio-ingressgateway
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http2
+    nodePort: 30080
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+    name: https
+    nodePort: 30443
+  - port: 8848
+    targetPort: 8848
+    protocol: TCP
+    name: nacos
+    nodePort: 30848
+  selector:
+    app: istio-ingressgateway

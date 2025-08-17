@@ -1,0 +1,3 @@
+Right now, please create a new file in prompt/step called 4.md ,and add every detail about step 4 in outline.md.Please also read the privious markdown files  to continue your content and style.
+and also please don't miss a single thing or the things i should prepare  because i know nothing about all of these knowledge,and everytime you want me to change or create something,please make the location very clear!
+And then follow every part of of 4.md. if you need me to do something on  linux you should tell me the detail and let me do it , or you want me to must click on something or some other app configure you can also let me know, and other things  you  should do them all and also write how the whole step can be count as  success.

@@ -1,0 +1,67 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: nacos-vs
+  namespace: offerkiller-system
+spec:
+  hosts:
+  - nacos.offerkiller.local
+  - localhost
+  gateways:
+  - nacos-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /nacos
+    route:
+    - destination:
+        host: nacos.offerkiller-system.svc.cluster.local
+        port:
+          number: 8848
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: offerkiller-api-vs
+  namespace: offerkiller-app
+spec:
+  hosts:
+  - api.offerkiller.local
+  - localhost
+  gateways:
+  - offerkiller-system/offerkiller-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api/user
+    route:
+    - destination:
+        host: user-service.offerkiller-app.svc.cluster.local
+        port:
+          number: 8081
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+  - match:
+    - uri:
+        prefix: /api/job
+    route:
+    - destination:
+        host: job-service.offerkiller-app.svc.cluster.local
+        port:
+          number: 8082
+    timeout: 30s
+  - match:
+    - uri:
+        prefix: /api/ai
+    route:
+    - destination:
+        host: ai-orchestration-service.offerkiller-app.svc.cluster.local
+        port:
+          number: 8083
+    timeout: 60s

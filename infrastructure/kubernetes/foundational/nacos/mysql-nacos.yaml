@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-nacos-secret
+  namespace: offerkiller-system
+type: Opaque
+data:
+  mysql-root-password: cm9vdDEyMw==  # root123
+  mysql-password: bmFjb3MxMjM=        # nacos123
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-nacos-config
+  namespace: offerkiller-system
+data:
+  nacos-init.sql: |
+    CREATE DATABASE IF NOT EXISTS nacos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE USER IF NOT EXISTS 'nacos'@'%' IDENTIFIED BY 'nacos123';
+    GRANT ALL PRIVILEGES ON nacos.* TO 'nacos'@'%';
+    
+    USE nacos;
+    
+    CREATE TABLE IF NOT EXISTS config_info (
+      id bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+      data_id varchar(255) NOT NULL COMMENT 'data_id',
+      group_id varchar(128) DEFAULT NULL,
+      content longtext NOT NULL COMMENT 'content',
+      md5 varchar(32) DEFAULT NULL COMMENT 'md5',
+      gmt_create datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      gmt_modified datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+      src_user text COMMENT 'source user',
+      src_ip varchar(50) DEFAULT NULL COMMENT 'source ip',
+      app_name varchar(128) DEFAULT NULL,
+      tenant_id varchar(128) DEFAULT '' COMMENT '租户字段',
+      c_desc varchar(256) DEFAULT NULL,
+      c_use varchar(64) DEFAULT NULL,
+      effect varchar(64) DEFAULT NULL,
+      type varchar(64) DEFAULT NULL,
+      c_schema text,
+      encrypted_data_key text NOT NULL COMMENT '秘钥',
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_configinfo_datagrouptenant (data_id,group_id,tenant_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info';
+    
+    CREATE TABLE IF NOT EXISTS naming_instance_metadata (
+      id bigint(20) NOT NULL AUTO_INCREMENT,
+      instance_id varchar(255) NOT NULL,
+      metadata_key varchar(128) NOT NULL,
+      metadata_value varchar(128) NOT NULL,
+      gmt_create datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      gmt_modified datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    
+    FLUSH PRIVILEGES;
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-nacos-pvc
+  namespace: offerkiller-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-nacos
+  namespace: offerkiller-system
+  labels:
+    app: mysql-nacos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-nacos
+  template:
+    metadata:
+      labels:
+        app: mysql-nacos
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-nacos-secret
+              key: mysql-root-password
+        - name: MYSQL_DATABASE
+          value: nacos
+        - name: MYSQL_USER
+          value: nacos
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-nacos-secret
+              key: mysql-password
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-init
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - mysqladmin
+            - ping
+            - -h
+            - localhost
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-nacos-pvc
+      - name: mysql-init
+        configMap:
+          name: mysql-nacos-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: offerkiller-system
+  labels:
+    app: mysql-nacos
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+    protocol: TCP
+  selector:
+    app: mysql-nacos

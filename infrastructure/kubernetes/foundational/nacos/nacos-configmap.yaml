@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nacos-config
+  namespace: offerkiller-system
+data:
+  application.properties: |
+    # Nacos Configuration
+    server.servlet.contextPath=/nacos
+    server.port=8848
+    
+    # Database Configuration
+    spring.datasource.platform=mysql
+    db.num=1
+    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+    db.user.0=nacos
+    db.password.0=nacos123
+    
+    # Management Configuration
+    management.endpoints.web.exposure.include=*
+    management.metrics.export.elastic.enabled=false
+    management.metrics.export.influx.enabled=false
+    
+    # Nacos Security
+    nacos.security.ignore.urls=/,/error,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-fe/public/**,/v1/auth/**,/v1/console/health/**,/actuator/**,/v1/console/namespace/**
+    
+    # Cluster Configuration
+    nacos.naming.distro.taskDispatchThreadCount=10
+    nacos.naming.distro.taskDispatchPeriod=200
+    nacos.naming.distro.batchSyncKeyCount=1000
+    nacos.naming.distro.initDataRatio=0.9
+    nacos.naming.distro.syncRetryDelay=5000
+    nacos.naming.data.warmup=true
+    nacos.naming.expireInstance=true

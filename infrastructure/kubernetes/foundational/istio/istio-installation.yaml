@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    istio-injection: disabled
+---
+# Istio Base Installation will be done via Helm
+# This file serves as reference for the configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-config
+  namespace: istio-system
+data:
+  mesh: |
+    defaultConfig:
+      proxyStatsMatcher:
+        inclusionRegexps:
+        - ".*circuit_breakers.*"
+        - ".*upstream_rq_retry.*"
+        - ".*upstream_rq_pending.*"
+        - ".*_cx_.*"
+      discoveryRefreshDelay: 10s
+      proxyMetadata:
+        PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+    defaultProviders:
+      metrics:
+      - prometheus
+    extensionProviders:
+    - name: prometheus
+      prometheus:
+        configOverride:
+          metric_relabeling_configs:
+          - source_labels: [__name__]
+            regex: 'istio_.*'
+            target_label: __tmp_istio_metric
+    trustDomain: cluster.local
+  values.yaml: |
+    pilot:
+      env:
+        EXTERNAL_ISTIOD: false
+        PILOT_TRACE_SAMPLING: 1.0
+        PILOT_ENABLE_ALPHA_GATEWAY_API: true
+    global:
+      meshID: mesh1
+      multiCluster:
+        clusterName: cluster1
+      network: network1
