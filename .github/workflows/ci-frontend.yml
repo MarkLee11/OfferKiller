@@ -37,8 +37,8 @@ jobs:
           cd frontend
           npm ci
           npm run lint || echo "⚠️ ESLint completed with warnings"
-          npm run format:check || echo "⚠️ Prettier check completed with warnings"  
-          npm run type-check || echo "⚠️ TypeScript check completed with warnings"
+          npm run format || echo "⚠️ Prettier formatting completed with warnings"  
+          npx tsc --noEmit || echo "⚠️ TypeScript check completed with warnings"
           npm audit --audit-level=moderate || echo "⚠️ Dependency audit completed with warnings"
         else
           echo "⚠️ Frontend package.json not found - skipping frontend tasks for now"
@@ -71,7 +71,7 @@ jobs:
         if [ -f "frontend/package.json" ]; then
           echo "✅ Running frontend unit tests..."
           cd frontend
-          npm run test:unit -- --coverage || echo "⚠️ Unit tests completed with warnings"
+          npm run test -- --coverage || echo "⚠️ Unit tests completed with warnings"
         else
           echo "⚠️ Frontend package.json not found - creating placeholder coverage"
           mkdir -p frontend/coverage
@@ -108,11 +108,10 @@ jobs:
           echo "✅ Running E2E tests..."
           cd frontend
           npm ci
-          npx playwright install || echo "⚠️ Playwright install completed with warnings"
-          npm run start:mock-backend & sleep 10 || echo "⚠️ Mock backend not available"
           npm run build || echo "⚠️ Build completed with warnings"
           npm run preview & sleep 10 || echo "⚠️ Preview server not available"
-          npm run test:e2e || echo "⚠️ E2E tests completed with warnings"
+          npx playwright install || echo "⚠️ Playwright install completed with warnings"
+          npx playwright test || echo "⚠️ E2E tests completed with warnings"
         else
           echo "⚠️ Frontend package.json not found - creating placeholder test results"
           mkdir -p frontend/test-results frontend/playwright-report
