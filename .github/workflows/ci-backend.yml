@@ -34,7 +34,7 @@ jobs:
         cache: maven
 
     - name: Cache Maven dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -97,7 +97,7 @@ jobs:
         cache: maven
 
     - name: Cache Maven dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -117,7 +117,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: always() && hashFiles('backend/target/site/jacoco/jacoco.xml') != ''
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: backend/target/site/jacoco/jacoco.xml
         flags: backend
@@ -183,7 +183,7 @@ jobs:
         cache: maven
 
     - name: Cache Maven dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -220,7 +220,7 @@ jobs:
         cache: maven
 
     - name: Cache Maven dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -290,7 +290,7 @@ jobs:
 
     - name: Upload artifacts
       if: always() && hashFiles('backend/**/target/*.jar') != ''
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: backend-artifacts
         path: |
@@ -327,7 +327,7 @@ jobs:
         args: --severity-threshold=medium
 
     - name: Upload security scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-scan-results

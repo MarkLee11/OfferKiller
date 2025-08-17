@@ -29,7 +29,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
@@ -70,7 +70,7 @@ jobs:
         fi
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
@@ -118,7 +118,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
@@ -146,7 +146,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: always() && hashFiles('ai-services/${{ matrix.service }}/coverage.xml') != ''
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ai-services/${{ matrix.service }}/coverage.xml
         flags: ai-services-${{ matrix.service }}
@@ -154,7 +154,7 @@ jobs:
 
     - name: Upload test results
       if: always() && (hashFiles('ai-services/${{ matrix.service }}/htmlcov/**') != '' || hashFiles('ai-services/${{ matrix.service }}/coverage.xml') != '')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-${{ matrix.service }}
         path: |
@@ -223,7 +223,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
@@ -317,7 +317,7 @@ jobs:
 
     - name: Upload Python artifacts
       if: always() && (hashFiles('ai-services/${{ matrix.service }}/dist/*.whl') != '' || hashFiles('ai-services/${{ matrix.service }}/dist/*') != '')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: python-wheels-${{ matrix.service }}
         path: ai-services/${{ matrix.service }}/dist/*
