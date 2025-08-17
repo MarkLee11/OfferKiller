@@ -1,0 +1,105 @@
+You are acting as Chief Architect + AI Agent Designer + Delivery Lead. Based on the goals and hard constraints below, produce a from-zero-to-one enterprise-grade Technical Architecture & Implementation Plan for an AI Agent (AIA) product. The output must be ready to build in one go—no iterative code rewrites of prior drafts.
+
+1) Product Goals
+
+Build a tool-style single-tenant user experience (no visibility into other users), deployable to a cloud server with zero manual ops after launch.
+
+Purpose: for each job posting, generate personalized resume outputs and related features.
+
+Three inputs per run: (1) user free-text requirements, (2) resume PDF, (3) JD text.
+
+Must gracefully degrade when any input is missing (see “Input Branching & Fallbacks”).
+
+With all three inputs, deliver five core outputs:
+
+Position-tailored resume (ATS-friendly, quantified highlights)
+
+Cover letter
+
+Skill-gap analysis with a mind map (common vs missing skills; future learning)
+
+Interview experience aggregation (from public, compliant sources)
+
+Interview simulation (questions, follow-ups, scoring rubric)
+
+Propose ≥ 8 additional high-value features (e.g., ATS score optimization, project rewriter, GitHub/portfolio audit, salary benchmarking, application tracker, versioning, learning path & progress, keyword heat analysis, custom LinkedIn summary, smart scheduling), each with a concrete path to implementation.
+
+If any requirement dilutes the AIA-first principle or is clearly low-ROI, make and justify explicit trade-offs.
+
+2) Architecture Constraints (full-stack coverage required)
+
+Backend: Java (Spring Boot, Spring Cloud).
+
+Data Access: MyBatis, MySQL.
+
+Cache/Messaging: Redis, RabbitMQ.
+
+Service Registry/Calls/Governance/Tx: Nacos, OpenFeign, Sentinel, Seata.
+
+Big Data/Compute: Python for data/DS; Spark or equivalent.
+
+Deploy/Infra: Docker, Kubernetes, Linux; cloud deployment; no human-in-the-loop ops (self-healing, auto-scale, alerts, canary).
+
+Engineering: Git, Swagger/OpenAPI, CI/CD.
+
+Workflows: n8n, Voiceflow.
+
+Frontend: bolt.new or an equivalent high-performance page generator.
+
+AI/Platforms: Hugging Face, GitHub.
+
+ML/MLOps (bonus): common DL frameworks (e.g., PyTorch/Transformers), MLflow/W&B, DVC, model registry & rollout.
+
+Meta-principles: maximize AI-generated code and reuse; low coupling, easy extension and rollback.
+
+3) Required Deliverables & Format (Markdown)
+
+Executive Summary (≤1 page).
+
+Product Scope & User Journeys with NFRs (usability, performance, cost, SLO).
+
+System Architecture Overview: prose + Mermaid C4/component diagram; microservice responsibility table.
+
+AI Agent Design: capability matrix (RAG/tools/workflows/memory/routing), prompt strategy & JSON Schemas, hallucination controls, cost/latency management, privacy & compliance, inference routing/fallbacks.
+
+Data & Storage: ERD, table examples; vector store plan; Spark pipelines & artifacts.
+
+Input Branching & Fallbacks (MANDATORY): matrix for all input combinations with output variants and quality safeguards.
+
+Five Core Outputs—Technical Plans (resume/cover letter, skill-gap mind map, interview experience, interview simulator).
+
+Additional Features (≥8) with prioritization (MoSCoW/RICE) and entry points.
+
+Stack Deep-Dive: Spring Cloud (Nacos/Feign/Sentinel/Seata), Redis/RabbitMQ contracts & idempotency, MyBatis+MySQL read/write & migration.
+
+Frontend Plan: bolt.new (or equivalent) layout, component list, state & API contracts.
+
+Workflow Automation: n8n blueprints + Voiceflow state machine.
+
+CI/CD & Environments: Git model, contract-first Swagger/OpenAPI, client SDK generation; include example Dockerfile, K8s Deployment/Service/HPA, health probes; optional Helm/Kustomize; GitHub Actions canary/rollback pipeline.
+
+Observability & Zero-Ops: logs/metrics/traces (OpenTelemetry), SLOs/alerts, self-healing & autoscaling.
+
+Security & Compliance: OAuth2/JWT, RBAC, audit, PII masking/encryption, retention & deletion, crawl compliance & rate governance.
+
+Testing & Acceptance: unit/integration/E2E/perf/chaos; business KPIs (resume-JD match score, ATS readability, hallucination rate, latency/cost budgets).
+
+Milestones & Plan (6–10 weeks): phased goals, artifacts, exit criteria, risks & mitigations.
+
+Appendix—Copy-Paste-Ready Snippets: OpenAPI fragments, MyBatis mappers, RabbitMQ topic conventions, Redis keyspace, Seata/Sentinel examples, n8n/Voiceflow JSON, MLflow/DVC minimal setup, K8s manifests, GitHub Actions minimal pipeline.
+
+Use bold for key conclusions; prefer tables/checklists/code blocks; no “TBD.”
+
+4) Design Principles
+
+AIA-first precedence, low coupling, AI-first & reuse, cost/latency aware with caching.
+
+5) Assumptions
+
+For any missing detail, make least-surprise assumptions and state them explicitly with tunable defaults.
+
+6) Tone & Style
+
+Highly structured and executable; all diagrams in Mermaid; every API includes request/response examples and error codes.
+
+Chinese preferred in body; English terms when helpful.

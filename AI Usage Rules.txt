@@ -1,0 +1,9 @@
+Combined Usage Recommendation (0 → 1 Project Workflow)
+
+1. Kick-off: Use GPT-5 for requirements and ideation → generate user stories and an MVP feature list
+
+2. Design Phase: Hand it over to Claude Opus 4.1 → produce the tech stack, system architecture diagrams, and phased development plan
+
+3. Core Implementation: Let Claude handle the main business modules, while Gemini 2.5 Pro supplements with key algorithms & cross-modal details
+
+4. Final Touches: Use GPT-5 to craft polished documentation, and Gemini to generate/execute test cases → delivering a pre-launch polish

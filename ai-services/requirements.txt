@@ -1,0 +1,60 @@
+# Core AI/ML Libraries
+torch>=2.0.0
+transformers>=4.30.0
+accelerate>=0.20.0
+datasets>=2.10.0
+tokenizers>=0.13.0
+
+# Vector Database & Embeddings
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+
+# Web Framework & API
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+httpx>=0.24.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+nltk>=3.8.0
+spacy>=3.6.0
+
+# PDF Processing
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
+python-multipart>=0.0.6
+
+# Database & Cache
+pymysql>=1.1.0
+redis>=4.6.0
+sqlalchemy>=2.0.0
+
+# Message Queue
+pika>=1.3.0
+celery>=5.3.0
+
+# MLOps & Experiment Tracking
+mlflow>=2.5.0
+wandb>=0.15.0
+dvc>=3.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+scrapy>=2.10.0
+
+# Development Tools
+jupyter>=1.0.0
+ipython>=8.14.0
+pytest>=7.4.0
+black>=23.7.0
+flake8>=6.0.0
+
+# Monitoring & Logging
+prometheus-client>=0.17.0
+structlog>=23.1.0
