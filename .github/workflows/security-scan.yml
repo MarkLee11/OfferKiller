@@ -1,0 +1,111 @@
+name: Security Scanning Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM
+
+jobs:
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@v3.63.2
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        component: [backend, ai-services, frontend]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Backend dependency scan
+      if: matrix.component == 'backend'
+      run: |
+        cd backend
+        mvn org.owasp:dependency-check-maven:check \
+          -DsuppressionsFile=.owasp-suppressions.xml \
+          -DfailBuildOnCVSS=7
+
+    - name: AI Services dependency scan
+      if: matrix.component == 'ai-services'
+      run: |
+        cd ai-services
+        pip install safety bandit
+        safety check --json --output safety-report.json
+        bandit -r . -f json -o bandit-report.json
+
+    - name: Frontend dependency scan
+      if: matrix.component == 'frontend'
+      run: |
+        cd frontend
+        npm audit --audit-level=moderate
+        npx retire --outputformat=json --outputpath=retire-report.json
+
+    - name: Upload vulnerability reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: vulnerability-scan-${{ matrix.component }}
+        path: |
+          **/*-report.json
+          **/dependency-check-report.html
+
+  license-scan:
+    name: License Compliance Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Java license scan
+      run: |
+        cd backend
+        mvn org.codehaus.mojo:license-maven-plugin:aggregate-third-party-report
+
+    - name: Python license scan
+      run: |
+        cd ai-services
+        pip install pip-licenses
+        pip-licenses --format=json --output-file=licenses.json
+
+    - name: Node.js license scan
+      run: |
+        cd frontend
+        npm install -g license-checker
+        license-checker --json --out licenses.json
+
+    - name: Upload license reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-reports
+        path: |
+          backend/target/site/aggregate-third-party-report.html
+          ai-services/licenses.json
+          frontend/licenses.json

@@ -1,0 +1,37 @@
+name: 'Setup Java Environment'
+description: 'Set up Java development environment with Maven and caching'
+inputs:
+  java-version:
+    description: 'Java version to set up'
+    required: false
+    default: '17'
+  maven-version:
+    description: 'Maven version to use'
+    required: false
+    default: '3.9.5'
+outputs:
+  java-version:
+    description: 'The Java version that was set up'
+    value: ${{ steps.setup.outputs.java-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up JDK ${{ inputs.java-version }}
+      id: setup
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Set Maven opts
+      shell: bash
+      run: echo "MAVEN_OPTS=-Xmx2048m" >> $GITHUB_ENV

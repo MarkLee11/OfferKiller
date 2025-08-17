@@ -1,0 +1,104 @@
+name: Staging Deployment Pipeline
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - demo
+
+env:
+  REGISTRY: ghcr.io
+  NAMESPACE: offerkiller
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > ~/.kube/config
+        kubectl config current-context
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Deploy backend services
+      run: |
+        helm upgrade --install offerkiller-backend \
+          infrastructure/helm/charts/backend/ \
+          --namespace offerkiller-staging \
+          --create-namespace \
+          --values infrastructure/helm/values/staging.yaml \
+          --set image.tag=${{ github.sha }} \
+          --set environment=staging \
+          --wait --timeout=10m
+
+    - name: Deploy AI services
+      run: |
+        helm upgrade --install offerkiller-ai-services \
+          infrastructure/helm/charts/ai-services/ \
+          --namespace offerkiller-staging \
+          --values infrastructure/helm/values/staging.yaml \
+          --set image.tag=${{ github.sha }} \
+          --set environment=staging \
+          --wait --timeout=10m
+
+    - name: Deploy frontend
+      run: |
+        helm upgrade --install offerkiller-frontend \
+          infrastructure/helm/charts/frontend/ \
+          --namespace offerkiller-staging \
+          --values infrastructure/helm/values/staging.yaml \
+          --set image.tag=${{ github.sha }} \
+          --set environment=staging \
+          --wait --timeout=5m
+
+    - name: Run smoke tests
+      run: |
+        # Wait for services to be ready
+        kubectl wait --for=condition=ready pod -l app=gateway -n offerkiller-staging --timeout=300s
+        
+        # Run basic smoke tests
+        kubectl run smoke-test --rm -i --restart=Never \
+          --image=curlimages/curl:latest \
+          --namespace=offerkiller-staging \
+          -- curl -f http://gateway.offerkiller-staging.svc.cluster.local:8080/health
+
+    - name: Notify Slack
+      if: always()
+      uses: ./.github/actions/notify-slack
+      with:
+        webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+        status: ${{ job.status }}
+        title: 'Staging Deployment'
+        message: 'Staging deployment completed'
+        channel: '#deployments'

@@ -1,0 +1,53 @@
+# Global owners
+* @offerkiller/core-team
+
+# Backend services
+/backend/ @offerkiller/backend-team
+/backend/user-service/ @offerkiller/backend-team @offerkiller/security-team
+/backend/gateway/ @offerkiller/backend-team @offerkiller/security-team
+
+# AI services
+/ai-services/ @offerkiller/ai-team @offerkiller/ml-team
+/ai-services/resume-generator/ @offerkiller/ai-team
+/ai-services/cover-letter-generator/ @offerkiller/ai-team
+/ai-services/skill-analyzer/ @offerkiller/ai-team
+/ai-services/interview-simulator/ @offerkiller/ai-team
+
+# Frontend
+/frontend/ @offerkiller/frontend-team
+
+# Infrastructure
+/infrastructure/ @offerkiller/devops-team @offerkiller/security-team
+/infrastructure/terraform/ @offerkiller/devops-team
+/infrastructure/kubernetes/ @offerkiller/devops-team
+/infrastructure/monitoring/ @offerkiller/devops-team
+
+# MLOps
+/mlops/ @offerkiller/ml-team @offerkiller/devops-team
+
+# CI/CD
+/.github/ @offerkiller/devops-team
+/.github/workflows/ @offerkiller/devops-team
+/.github/actions/ @offerkiller/devops-team
+
+# Documentation
+/docs/ @offerkiller/core-team
+README.md @offerkiller/core-team
+
+# Security
+/security/ @offerkiller/security-team
+**/security/ @offerkiller/security-team
+
+# Database
+**/migrations/ @offerkiller/backend-team @offerkiller/dba-team
+**/flyway/ @offerkiller/backend-team @offerkiller/dba-team
+
+# Configuration
+**/*.yaml @offerkiller/devops-team
+**/*.yml @offerkiller/devops-team
+**/values/ @offerkiller/devops-team
+
+# Secrets and sensitive files
+**/*secret* @offerkiller/security-team
+**/*credential* @offerkiller/security-team
+**/*key* @offerkiller/security-team

@@ -1,0 +1,303 @@
+name: AI Services CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'ai-services/**'
+      - '.github/workflows/ci-ai-services.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'ai-services/**'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd ai-services
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 black isort mypy bandit safety
+
+    - name: Run Black formatter check
+      run: |
+        cd ai-services
+        black --check --diff .
+
+    - name: Run isort import sorting check
+      run: |
+        cd ai-services
+        isort --check-only --diff .
+
+    - name: Run flake8 linting
+      run: |
+        cd ai-services
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run mypy type checking
+      run: |
+        cd ai-services
+        mypy --install-types --non-interactive .
+
+    - name: Run bandit security linting
+      run: |
+        cd ai-services
+        bandit -r . -f json -o bandit-report.json
+
+    - name: Run safety dependency check
+      run: |
+        cd ai-services
+        safety check --json --output safety-report.json
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          ai-services/bandit-report.json
+          ai-services/safety-report.json
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    strategy:
+      matrix:
+        service: [resume-generator, cover-letter-generator, skill-analyzer, interview-simulator]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      chromadb:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd="curl -f http://localhost:8000/api/v1/heartbeat"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd ai-services
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio pytest-mock
+
+    - name: Run unit tests for ${{ matrix.service }}
+      run: |
+        cd ai-services/${{ matrix.service }}
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ai-services/${{ matrix.service }}/coverage.xml
+        flags: ai-services-${{ matrix.service }}
+        name: ai-services-${{ matrix.service }}-coverage
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.service }}
+        path: |
+          ai-services/${{ matrix.service }}/htmlcov/
+          ai-services/${{ matrix.service }}/coverage.xml
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: offerkiller_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      rabbitmq:
+        image: rabbitmq:3.12-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: test
+          RABBITMQ_DEFAULT_PASS: test
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      chromadb:
+        image: chromadb/chroma:latest
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd="curl -f http://localhost:8000/api/v1/heartbeat"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('ai-services/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd ai-services
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+
+    - name: Wait for services to be ready
+      run: |
+        # Wait for ChromaDB
+        timeout 60s bash -c 'until curl -f http://localhost:8000/api/v1/heartbeat; do sleep 2; done'
+
+    - name: Run integration tests
+      env:
+        MYSQL_URL: mysql://root:testpassword@localhost:3306/offerkiller_test
+        REDIS_URL: redis://localhost:6379
+        RABBITMQ_URL: amqp://test:test@localhost:5672
+        CHROMA_URL: http://localhost:8000
+      run: |
+        cd ai-services
+        pytest tests/integration/ -v --maxfail=1
+
+  build-and-package:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    strategy:
+      matrix:
+        service: [resume-generator, cover-letter-generator, skill-analyzer, interview-simulator]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Build Docker image for ${{ matrix.service }}
+      run: |
+        cd ai-services/${{ matrix.service }}
+        docker build -t offerkiller/${{ matrix.service }}:${{ github.sha }} .
+
+    - name: Login to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Push Docker image for ${{ matrix.service }}
+      if: github.event_name != 'pull_request'
+      run: |
+        docker push offerkiller/${{ matrix.service }}:${{ github.sha }}
+        
+        # Tag latest if main branch
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          docker tag offerkiller/${{ matrix.service }}:${{ github.sha }} offerkiller/${{ matrix.service }}:latest
+          docker push offerkiller/${{ matrix.service }}:latest
+        fi
+
+    - name: Package Python wheel
+      run: |
+        cd ai-services/${{ matrix.service }}
+        python setup.py bdist_wheel
+
+    - name: Upload Python artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-wheels-${{ matrix.service }}
+        path: ai-services/${{ matrix.service }}/dist/*.whl
+        retention-days: 7

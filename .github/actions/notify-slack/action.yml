@@ -1,0 +1,100 @@
+name: 'Slack Notification'
+description: 'Send rich notifications to Slack'
+inputs:
+  webhook-url:
+    description: 'Slack webhook URL'
+    required: true
+  status:
+    description: 'Build/deployment status'
+    required: true
+  title:
+    description: 'Notification title'
+    required: false
+    default: 'GitHub Actions Notification'
+  message:
+    description: 'Custom message'
+    required: false
+  channel:
+    description: 'Slack channel'
+    required: false
+    default: '#deployments'
+  username:
+    description: 'Bot username'
+    required: false
+    default: 'GitHub Actions'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set notification color
+      id: color
+      shell: bash
+      run: |
+        case "${{ inputs.status }}" in
+          "success") echo "color=good" >> $GITHUB_OUTPUT ;;
+          "failure") echo "color=danger" >> $GITHUB_OUTPUT ;;
+          "cancelled") echo "color=warning" >> $GITHUB_OUTPUT ;;
+          *) echo "color=#808080" >> $GITHUB_OUTPUT ;;
+        esac
+
+    - name: Send Slack notification
+      shell: bash
+      run: |
+        curl -X POST ${{ inputs.webhook-url }} \
+          -H 'Content-type: application/json' \
+          --data '{
+            "channel": "${{ inputs.channel }}",
+            "username": "${{ inputs.username }}",
+            "icon_emoji": ":robot_face:",
+            "attachments": [
+              {
+                "color": "${{ steps.color.outputs.color }}",
+                "title": "${{ inputs.title }}",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "${{ github.repository }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Status",
+                    "value": "${{ inputs.status }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "${{ github.sha }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Author",
+                    "value": "${{ github.actor }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Workflow",
+                    "value": "${{ github.workflow }}",
+                    "short": true
+                  }
+                ],
+                "footer": "GitHub Actions",
+                "ts": '$(($(date +%s)))'
+              }
+            ]
+          }'
+
+        if [ -n "${{ inputs.message }}" ]; then
+          curl -X POST ${{ inputs.webhook-url }} \
+            -H 'Content-type: application/json' \
+            --data '{
+              "channel": "${{ inputs.channel }}",
+              "username": "${{ inputs.username }}",
+              "text": "${{ inputs.message }}",
+              "icon_emoji": ":speech_balloon:"
+            }'
+        fi

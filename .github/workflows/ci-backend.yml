@@ -1,0 +1,339 @@
+name: Backend CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_OPTS: '-Xmx2048m'
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better relevancy
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run Maven compile
+      run: |
+        cd backend
+        mvn clean compile -B
+
+    - name: Run Checkstyle
+      run: |
+        cd backend
+        mvn checkstyle:check -B
+
+    - name: Run SpotBugs
+      run: |
+        cd backend
+        mvn spotbugs:check -B
+
+    - name: Run PMD
+      run: |
+        cd backend
+        mvn pmd:check -B
+
+    - name: SonarCloud Scan
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        cd backend
+        mvn sonar:sonar \
+          -Dsonar.projectKey=offerkiller-backend \
+          -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
+          -Dsonar.host.url=https://sonarcloud.io
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: offerkiller_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run unit tests
+      run: |
+        cd backend
+        mvn test -B -Dspring.profiles.active=test
+
+    - name: Generate test coverage
+      run: |
+        cd backend
+        mvn jacoco:report -B
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/target/site/jacoco/jacoco.xml
+        flags: backend
+        name: backend-coverage
+
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: backend/**/target/surefire-reports/*.xml
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: offerkiller_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      rabbitmq:
+        image: rabbitmq:3.12-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: test
+          RABBITMQ_DEFAULT_PASS: test
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run integration tests
+      run: |
+        cd backend
+        mvn verify -B -Dspring.profiles.active=integration-test \
+          -Dtest.mysql.url=jdbc:mysql://localhost:3306/offerkiller_test \
+          -Dtest.redis.url=redis://localhost:6379 \
+          -Dtest.rabbitmq.url=amqp://test:test@localhost:5672
+
+  build-and-package:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build and package
+      run: |
+        cd backend
+        mvn clean package -B -DskipTests
+
+    - name: Build Docker images
+      run: |
+        cd backend
+        
+        # Build user service
+        docker build -t offerkiller/user-service:${{ github.sha }} \
+          -f user-service/Dockerfile user-service/
+          
+        # Build job service
+        docker build -t offerkiller/job-service:${{ github.sha }} \
+          -f job-service/Dockerfile job-service/
+          
+        # Build AI orchestration service
+        docker build -t offerkiller/ai-orchestration-service:${{ github.sha }} \
+          -f ai-orchestration-service/Dockerfile ai-orchestration-service/
+          
+        # Build resume service
+        docker build -t offerkiller/resume-service:${{ github.sha }} \
+          -f resume-service/Dockerfile resume-service/
+          
+        # Build gateway
+        docker build -t offerkiller/gateway:${{ github.sha }} \
+          -f gateway/Dockerfile gateway/
+
+    - name: Login to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Push Docker images
+      if: github.event_name != 'pull_request'
+      run: |
+        docker push offerkiller/user-service:${{ github.sha }}
+        docker push offerkiller/job-service:${{ github.sha }}
+        docker push offerkiller/ai-orchestration-service:${{ github.sha }}
+        docker push offerkiller/resume-service:${{ github.sha }}
+        docker push offerkiller/gateway:${{ github.sha }}
+        
+        # Tag latest if main branch
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          docker tag offerkiller/user-service:${{ github.sha }} offerkiller/user-service:latest
+          docker tag offerkiller/job-service:${{ github.sha }} offerkiller/job-service:latest
+          docker tag offerkiller/ai-orchestration-service:${{ github.sha }} offerkiller/ai-orchestration-service:latest
+          docker tag offerkiller/resume-service:${{ github.sha }} offerkiller/resume-service:latest
+          docker tag offerkiller/gateway:${{ github.sha }} offerkiller/gateway:latest
+          
+          docker push offerkiller/user-service:latest
+          docker push offerkiller/job-service:latest
+          docker push offerkiller/ai-orchestration-service:latest
+          docker push offerkiller/resume-service:latest
+          docker push offerkiller/gateway:latest
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-artifacts
+        path: |
+          backend/**/target/*.jar
+          !backend/**/target/original-*.jar
+        retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Run OWASP Dependency Check
+      run: |
+        cd backend
+        mvn org.owasp:dependency-check-maven:check -B
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/maven@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=medium
+
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: |
+          backend/**/target/dependency-check-report.html
+          backend/.snyk
