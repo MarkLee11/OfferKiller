@@ -26,13 +26,14 @@
         <rabbitmq.version>5.19.0</rabbitmq.version>
     </properties>
 
+    <!-- Modules will be added as they are created in subsequent steps -->
     <modules>
-        <module>shared</module>
-        <module>gateway</module>
-        <module>user-service</module>
-        <module>job-service</module>
-        <module>ai-orchestration-service</module>
-        <module>resume-service</module>
+        <!-- <module>shared</module> -->
+        <!-- <module>gateway</module> -->
+        <!-- <module>user-service</module> -->
+        <!-- <module>job-service</module> -->
+        <!-- <module>ai-orchestration-service</module> -->
+        <!-- <module>resume-service</module> -->
     </modules>
 
     <dependencyManagement>
