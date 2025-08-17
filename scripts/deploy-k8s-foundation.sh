@@ -251,7 +251,10 @@ main() {
         # Install Istio components
         deploy_helm_chart "istio-base" "istio/base" "istio-system" "" "Istio Base"
         deploy_helm_chart "istiod" "istio/istiod" "istio-system" "" "Istio Control Plane"
-        deploy_helm_chart "istio-ingressgateway" "istio/gateway" "istio-system" "" "Istio Ingress Gateway"
+        
+        # Skip Istio Ingress Gateway for now due to Helm chart compatibility issues
+        print_warning "⚠️ Skipping Istio Ingress Gateway due to Helm chart compatibility issues"
+        print_info "💡 Core services (Nacos) will work fine without ingress gateway"
         
         # Wait for Istio to be ready
         if [[ "$DRY_RUN" != "true" ]]; then
