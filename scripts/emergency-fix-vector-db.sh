@@ -78,23 +78,19 @@ spec:
     spec:
       containers:
       - name: chromadb
-        image: chromadb/chroma:0.4.15
+        image: chromadb/chroma:0.4.12
         ports:
         - containerPort: 8000
           name: http
         env:
-        - name: CHROMA_SERVER_HOST
-          value: "0.0.0.0"
-        - name: CHROMA_SERVER_HTTP_PORT
-          value: "8000"
-        - name: CHROMA_LOG_LEVEL
-          value: "INFO"
-        - name: ANONYMIZED_TELEMETRY
-          value: "false"
-        - name: CHROMA_DB_IMPL
-          value: "chromadb.db.duckdb.DuckDB"
+        - name: IS_PERSISTENT
+          value: "TRUE"
         - name: PERSIST_DIRECTORY
           value: "/chroma/chroma"
+        - name: ANONYMIZED_TELEMETRY
+          value: "FALSE"
+        command: ["uvicorn"]
+        args: ["chromadb.app:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
         resources:
           requests:
             memory: "128Mi"
