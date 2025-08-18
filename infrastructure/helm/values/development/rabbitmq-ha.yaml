@@ -1,0 +1,50 @@
+# RabbitMQ Development Environment Configuration
+rabbitmq:
+  # Reduced resources for development
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Smaller persistence
+  persistence:
+    size: "4Gi"
+  
+  # Simplified configuration for development
+  configuration: |
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_partition_handling = autoheal
+    queue_master_locator = min-masters
+    vm_memory_high_watermark.relative = 0.8
+    disk_free_limit.relative = 1.0
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    log.file.level = info
+    management.rates_mode = basic
+
+# Disable backup in development
+backup:
+  enabled: false
+
+# Reduced replicas for development
+replicaCount: 2
+
+# Development-specific labels
+labels:
+  environment: "development"
+  app: rabbitmq-ha
+  version: "3.12.0"
+
+# Simplified policies for development
+policies:
+  - name: "ha-policy-dev"
+    pattern: ".*"
+    definition:
+      ha-mode: "exactly"
+      ha-params: 1
+      ha-sync-mode: "automatic"

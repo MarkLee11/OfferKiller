@@ -1,0 +1,24 @@
+apiVersion: v2
+name: rabbitmq-ha
+description: High-availability RabbitMQ cluster for OfferKiller message broker
+type: application
+version: 1.0.0
+appVersion: "3.12.0"
+keywords:
+  - rabbitmq
+  - message broker
+  - amqp
+  - queue
+home: https://rabbitmq.com/
+sources:
+  - https://github.com/rabbitmq/rabbitmq-server
+maintainers:
+  - name: OfferKiller Team
+    email: devops@offerkiller.com
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    version: 2.x.x
+annotations:
+  category: Message Broker
+  licenses: MPL-2.0

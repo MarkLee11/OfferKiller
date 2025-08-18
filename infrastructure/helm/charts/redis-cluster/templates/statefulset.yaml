@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis-cluster.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-cluster.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "redis-cluster.fullname" . }}-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "redis-cluster.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis-cluster.selectorLabels" . | nindent 8 }}
+        {{- with .Values.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: redis
+        image: "{{ .Values.redis.image.registry }}/{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+        imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+        ports:
+        - containerPort: 6379
+          name: redis
+        - containerPort: 16379
+          name: cluster
+        env:
+        - name: REDIS_PASSWORD
+          {{- if .Values.redis.auth.existingSecret }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.redis.auth.existingSecret }}
+              key: {{ .Values.redis.auth.existingSecretPasswordKey | default "password" }}
+          {{- else }}
+          value: {{ .Values.redis.auth.password | quote }}
+          {{- end }}
+        - name: REDIS_NODES
+          value: "{{ .Values.redis.cluster.nodes }}"
+        - name: REDIS_REPLICAS
+          value: "{{ .Values.redis.cluster.replicas }}"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /usr/local/etc/redis/redis.conf
+          subPath: redis.conf
+        {{- with .Values.redis.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "redis-cluster.fullname" . }}-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: {{ .Values.redis.persistence.accessModes }}
+      storageClassName: {{ .Values.redis.persistence.storageClass }}
+      resources:
+        requests:
+          storage: {{ .Values.redis.persistence.size }}

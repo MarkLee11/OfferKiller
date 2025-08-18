@@ -1,0 +1,26 @@
+apiVersion: v2
+name: vector-database
+description: High-availability vector database cluster for OfferKiller AI operations
+type: application
+version: 1.0.0
+appVersion: "0.4.0"
+keywords:
+  - vector
+  - database
+  - ai
+  - ml
+  - chroma
+  - embeddings
+home: https://www.trychroma.com/
+sources:
+  - https://github.com/chroma-core/chroma
+maintainers:
+  - name: OfferKiller Team
+    email: devops@offerkiller.com
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    version: 2.x.x
+annotations:
+  category: Database
+  licenses: Apache-2.0

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vector-database.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vector-database.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    chroma_server_host: {{ .Values.chromadb.configuration.host }}
+    chroma_server_http_port: {{ .Values.chromadb.configuration.port }}
+    chroma_server_grpc_port: {{ .Values.chromadb.configuration.chroma_server_grpc_port }}
+    chroma_server_cors_allow_origins: {{ .Values.chromadb.configuration.cors_allow_origins | toJson }}
+    chroma_log_level: {{ .Values.chromadb.configuration.log_level }}
+    anonymized_telemetry: {{ .Values.chromadb.configuration.anonymized_telemetry }}
+    chroma_db_impl: {{ .Values.chromadb.configuration.chroma_db_impl }}
+    chroma_segment_cache_policy: {{ .Values.chromadb.configuration.chroma_segment_cache_policy }}
+    chroma_segment_cache_size: {{ .Values.chromadb.configuration.chroma_segment_cache_size }}
+    persist_directory: {{ .Values.chromadb.persistence.mountPath }}
+    max_batch_size: {{ .Values.chromadb.configuration.max_batch_size }}
+    chroma_sysdb_impl: {{ .Values.chromadb.configuration.chroma_sysdb_impl }}
+    chroma_producer_impl: {{ .Values.chromadb.configuration.chroma_producer_impl }}
+    chroma_consumer_impl: {{ .Values.chromadb.configuration.chroma_consumer_impl }}
+    {{- if .Values.chromadb.auth.enabled }}
+    chroma_server_auth_provider: {{ .Values.chromadb.auth.provider }}
+    chroma_server_auth_credentials: {{ .Values.chromadb.auth.credentials }}
+    {{- end }}

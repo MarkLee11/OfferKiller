@@ -1,0 +1,248 @@
+# Vector Database Configuration
+chromadb:
+  image:
+    registry: docker.io
+    repository: chromadb/chroma
+    tag: "0.4.15"
+    pullPolicy: IfNotPresent
+  
+  # Authentication and security
+  auth:
+    enabled: true
+    provider: "chromadb.auth.simple.SimpleAuthenticationServerProvider"
+    credentials: "admin:vectordb123change"
+  
+  # Resource configuration
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  
+  # Persistence configuration
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: "50Gi"
+    accessModes:
+      - ReadWriteOnce
+    mountPath: "/chroma/chroma"
+  
+  # Configuration
+  configuration:
+    host: "0.0.0.0"
+    port: 8000
+    cors_allow_origins: ["*"]
+    log_level: "INFO"
+    anonymized_telemetry: false
+    
+    # Storage backend
+    chroma_db_impl: "chromadb.db.duckdb.DuckDB"
+    chroma_server_nofile: 65535
+    
+    # Performance tuning
+    max_batch_size: 5461
+    chroma_segment_cache_policy: "LRU"
+    chroma_segment_cache_size: 1000
+    
+    # API configuration
+    chroma_server_grpc_port: 50051
+    chroma_server_http_port: 8000
+    
+    # Backup and recovery
+    chroma_sysdb_impl: "chromadb.sysdb.impl.sqlite.SqliteDB"
+    chroma_producer_impl: "chromadb.ingest.impl.simple.SimpleProducer"
+    chroma_consumer_impl: "chromadb.ingest.impl.simple.SimpleConsumer"
+
+# Qdrant alternative configuration (optional)
+qdrant:
+  enabled: false
+  image:
+    registry: docker.io
+    repository: qdrant/qdrant
+    tag: "v1.6.0"
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: "20Gi"
+    
+  configuration:
+    log_level: "INFO"
+    storage:
+      optimizers:
+        deleted_threshold: 0.2
+        vacuum_min_vector_number: 1000
+        default_segment_number: 0
+      wal:
+        wal_capacity_mb: 32
+        wal_segments_ahead: 0
+      performance:
+        max_search_threads: 0
+        max_optimization_threads: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  chromaPort: 8000
+  chromaGrpcPort: 50051
+  qdrantPort: 6333
+  qdrantGrpcPort: 6334
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/api/v1/heartbeat"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  ingressClassName: "istio"
+  hostname: "vectordb.offerkiller.local"
+  path: "/"
+  tls: true
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  labels:
+    app: vector-database
+  interval: 30s
+  path: /api/v1/heartbeat
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: offerkiller-app
+      - namespaceSelector:
+          matchLabels:
+            name: offerkiller-system
+      ports:
+      - protocol: TCP
+        port: 8000
+      - protocol: TCP
+        port: 50051
+      - protocol: TCP
+        port: 6333
+      - protocol: TCP
+        port: 6334
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Affinity and tolerations
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: vector-database
+        topologyKey: kubernetes.io/hostname
+
+# Additional labels
+labels:
+  app: vector-database
+  version: "0.4.15"
+  component: vector-store
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 4 * * *"
+  retention: "14d"
+  storage:
+    storageClass: "standard"
+    size: "10Gi"
+
+# Health checks
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: "/api/v1/heartbeat"
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: "/api/v1/heartbeat"
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Init containers for data migration/setup
+initContainers:
+  - name: chroma-init
+    image: busybox:1.35
+    command:
+      - sh
+      - -c
+      - |
+        echo "Initializing ChromaDB storage..."
+        mkdir -p /chroma/chroma
+        chown -R 1000:1000 /chroma/chroma
+        echo "Initialization complete"
+    volumeMounts:
+      - name: data
+        mountPath: /chroma/chroma
+
+# Collection management
+collections:
+  default:
+    - name: "resumes"
+      metadata:
+        description: "Resume embeddings for similarity search"
+        distance_function: "cosine"
+    - name: "job_descriptions"
+      metadata:
+        description: "Job description embeddings for matching"
+        distance_function: "cosine"
+    - name: "skills"
+      metadata:
+        description: "Skill embeddings for gap analysis"
+        distance_function: "cosine"
+    - name: "interview_questions"
+      metadata:
+        description: "Interview question embeddings"
+        distance_function: "cosine"
+
+# Replicas configuration
+replicaCount: 2

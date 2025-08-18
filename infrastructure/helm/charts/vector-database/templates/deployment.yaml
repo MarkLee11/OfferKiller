@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vector-database.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vector-database.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "vector-database.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "vector-database.selectorLabels" . | nindent 8 }}
+        {{- with .Values.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      {{- range .Values.initContainers }}
+      - name: {{ .name }}
+        image: {{ .image }}
+        command:
+          {{- toYaml .command | nindent 10 }}
+        volumeMounts:
+          {{- toYaml .volumeMounts | nindent 10 }}
+      {{- end }}
+      containers:
+      - name: chromadb
+        image: "{{ .Values.chromadb.image.registry }}/{{ .Values.chromadb.image.repository }}:{{ .Values.chromadb.image.tag }}"
+        imagePullPolicy: {{ .Values.chromadb.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.chromadb.configuration.port }}
+          name: http
+        - containerPort: {{ .Values.chromadb.configuration.chroma_server_grpc_port }}
+          name: grpc
+        env:
+        - name: CHROMA_SERVER_HOST
+          value: {{ .Values.chromadb.configuration.host | quote }}
+        - name: CHROMA_SERVER_HTTP_PORT
+          value: {{ .Values.chromadb.configuration.port | quote }}
+        - name: CHROMA_SERVER_GRPC_PORT
+          value: {{ .Values.chromadb.configuration.chroma_server_grpc_port | quote }}
+        - name: CHROMA_SERVER_CORS_ALLOW_ORIGINS
+          value: {{ .Values.chromadb.configuration.cors_allow_origins | toJson | quote }}
+        - name: CHROMA_LOG_LEVEL
+          value: {{ .Values.chromadb.configuration.log_level | quote }}
+        - name: ANONYMIZED_TELEMETRY
+          value: {{ .Values.chromadb.configuration.anonymized_telemetry | quote }}
+        - name: CHROMA_DB_IMPL
+          value: {{ .Values.chromadb.configuration.chroma_db_impl | quote }}
+        - name: CHROMA_SEGMENT_CACHE_POLICY
+          value: {{ .Values.chromadb.configuration.chroma_segment_cache_policy | quote }}
+        - name: CHROMA_SEGMENT_CACHE_SIZE
+          value: {{ .Values.chromadb.configuration.chroma_segment_cache_size | quote }}
+        - name: PERSIST_DIRECTORY
+          value: {{ .Values.chromadb.persistence.mountPath | quote }}
+        volumeMounts:
+        - name: data
+          mountPath: {{ .Values.chromadb.persistence.mountPath }}
+        - name: config
+          mountPath: /chroma/config.yaml
+          subPath: config.yaml
+        {{- with .Values.chromadb.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.livenessProbe.httpGet.path }}
+            port: {{ .Values.livenessProbe.httpGet.port }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessProbe.httpGet.path }}
+            port: {{ .Values.readinessProbe.httpGet.port }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+      volumes:
+      - name: data
+        {{- if .Values.chromadb.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "vector-database.fullname" . }}-data
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: config
+        configMap:
+          name: {{ include "vector-database.fullname" . }}-config

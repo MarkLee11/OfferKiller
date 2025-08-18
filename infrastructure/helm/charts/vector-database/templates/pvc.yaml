@@ -1,0 +1,15 @@
+{{- if .Values.chromadb.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "vector-database.fullname" . }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vector-database.labels" . | nindent 4 }}
+spec:
+  accessModes: {{ .Values.chromadb.persistence.accessModes }}
+  storageClassName: {{ .Values.chromadb.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.chromadb.persistence.size }}
+{{- end }}

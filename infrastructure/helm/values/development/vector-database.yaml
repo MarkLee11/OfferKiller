@@ -1,0 +1,53 @@
+# Vector Database Development Environment Configuration
+chromadb:
+  # Reduced resources for development
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  # Smaller persistence
+  persistence:
+    size: "10Gi"
+  
+  # Development-specific configuration
+  configuration:
+    host: "0.0.0.0"
+    port: 8000
+    cors_allow_origins: ["*"]
+    log_level: "DEBUG"
+    anonymized_telemetry: false
+    max_batch_size: 1000
+    chroma_segment_cache_size: 100
+
+# Disable Qdrant in development
+qdrant:
+  enabled: false
+
+# Disable backup in development
+backup:
+  enabled: false
+
+# Single replica for development
+replicaCount: 1
+
+# Development-specific labels
+labels:
+  environment: "development"
+  app: vector-database
+  version: "0.4.15"
+
+# Simplified collections for development
+collections:
+  default:
+    - name: "dev_resumes"
+      metadata:
+        description: "Development resume embeddings"
+        distance_function: "cosine"
+    - name: "dev_jobs"
+      metadata:
+        description: "Development job embeddings"
+        distance_function: "cosine"

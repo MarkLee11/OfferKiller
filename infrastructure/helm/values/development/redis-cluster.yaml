@@ -1,0 +1,45 @@
+# Redis Development Environment Configuration
+redis:
+  # Reduced resources for development
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  
+  # Smaller cluster for development
+  cluster:
+    nodes: 3
+    replicas: 1
+  
+  # Reduced persistence
+  persistence:
+    size: "2Gi"
+  
+  # Development-specific configuration
+  configuration: |
+    bind 0.0.0.0
+    port 6379
+    maxmemory 200mb
+    maxmemory-policy allkeys-lru
+    save 300 10
+    cluster-enabled yes
+    cluster-config-file nodes.conf
+    cluster-node-timeout 5000
+    loglevel notice
+    protected-mode no
+
+# Disable backup in development
+backup:
+  enabled: false
+
+# Single replica for development
+replicaCount: 3
+
+# Development-specific labels
+labels:
+  environment: "development"
+  app: redis-cluster
+  version: "7.2.0"

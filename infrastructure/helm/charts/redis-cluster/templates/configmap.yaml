@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-cluster.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-cluster.labels" . | nindent 4 }}
+data:
+  redis.conf: |
+{{ .Values.redis.configuration | indent 4 }}

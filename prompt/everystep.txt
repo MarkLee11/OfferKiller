@@ -1,3 +1,21 @@
-Right now, please create a new file in prompt/step called 4.md ,and add every detail about step 4 in outline.md.Please also read the privious markdown files  to continue your content and style.
-and also please don't miss a single thing or the things i should prepare  because i know nothing about all of these knowledge,and everytime you want me to change or create something,please make the location very clear!
-And then follow every part of of 4.md. if you need me to do something on  linux you should tell me the detail and let me do it , or you want me to must click on something or some other app configure you can also let me know, and other things  you  should do them all and also write how the whole step can be count as  success.
+Please create a new file in prompt/step 6.md that fully expands step 6 from outline.md.
+
+Continue the same style and structure as in previous step markdown files.
+
+Include every detail I need to know, assuming I have zero prior knowledge.
+
+Whenever I need to prepare, install, or configure something, make the location and instructions very explicit.
+
+If the step requires Linux commands or configuration in another app/tool, tell me immediately so I can run them and return the results.
+
+If it requires Windows actions , you can do them all by yourself.
+
+Treat this like a workflow collaboration:
+
+You write the explanations, configs, and automation code that you can write.
+
+When manual execution is needed, you stop and let me perform it.
+
+After I give feedback, you continue.
+
+At the end of each step, clearly define how we can verify success (tests, checks, or expected output).

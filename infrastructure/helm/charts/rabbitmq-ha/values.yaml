@@ -1,0 +1,226 @@
+# RabbitMQ HA Configuration
+rabbitmq:
+  image:
+    registry: docker.io
+    repository: rabbitmq
+    tag: "3.12.0-management-alpine"
+    pullPolicy: IfNotPresent
+  
+  # Cluster configuration
+  clustering:
+    enabled: true
+    rebalance: true
+    forceBoot: false
+  
+  # Authentication
+  auth:
+    username: "offerkilleruser"
+    password: "rabbitmq123change"
+    existingPasswordSecret: ""
+    existingErlangSecret: ""
+    erlangCookie: "offerkiller-rabbitmq-cookie-change-in-production"
+  
+  # Resource configuration
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: "8Gi"
+    accessModes:
+      - ReadWriteOnce
+  
+  # Configuration
+  configuration: |
+    # Clustering
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_formation.node_cleanup.interval = 30
+    cluster_formation.node_cleanup.only_log_warning = true
+    cluster_partition_handling = autoheal
+    
+    # Queue management
+    queue_master_locator = min-masters
+    
+    # Memory management
+    vm_memory_high_watermark.relative = 0.6
+    disk_free_limit.relative = 2.0
+    
+    # Networking
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    
+    # SSL/TLS
+    listeners.ssl.default = 5671
+    ssl_options.cacertfile = /opt/rabbitmq/ssl/ca_certificate.pem
+    ssl_options.certfile = /opt/rabbitmq/ssl/server_certificate.pem
+    ssl_options.keyfile = /opt/rabbitmq/ssl/server_key.pem
+    ssl_options.verify = verify_peer
+    ssl_options.fail_if_no_peer_cert = false
+    
+    # Logging
+    log.file.level = info
+    log.connection.level = info
+    log.channel.level = info
+    log.queue.level = info
+    log.mirroring.level = info
+    log.federation.level = info
+    log.upgrade.level = info
+    
+    # Management plugin
+    management.rates_mode = basic
+    management.sample_retention_policies.global.minute = 5
+    management.sample_retention_policies.global.hour = 60
+    management.sample_retention_policies.global.day = 1440
+
+# Load balancer configuration
+loadBalancer:
+  enabled: true
+  port: 5672
+  
+# Service configuration
+service:
+  type: ClusterIP
+  amqpPort: 5672
+  amqpTlsPort: 5671
+  managerPort: 15672
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "15692"
+    prometheus.io/path: "/metrics"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  ingressClassName: "istio"
+  hostname: "rabbitmq.offerkiller.local"
+  path: "/"
+  tls: true
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  labels:
+    app: rabbitmq-ha
+  interval: 30s
+  path: /metrics
+  port: prometheus
+
+# Plugins configuration
+plugins:
+  list: |
+    rabbitmq_management
+    rabbitmq_peer_discovery_k8s
+    rabbitmq_prometheus
+    rabbitmq_shovel
+    rabbitmq_shovel_management
+    rabbitmq_federation
+    rabbitmq_federation_management
+
+# Policies and definitions
+policies:
+  - name: "ha-policy"
+    pattern: ".*"
+    definition:
+      ha-mode: "exactly"
+      ha-params: 2
+      ha-sync-mode: "automatic"
+      ha-sync-batch-size: 1
+      queue-master-locator: "min-masters"
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: offerkiller-app
+      - namespaceSelector:
+          matchLabels:
+            name: offerkiller-system
+      ports:
+      - protocol: TCP
+        port: 5672
+      - protocol: TCP
+        port: 5671
+      - protocol: TCP
+        port: 15672
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  fsGroup: 999
+
+# Affinity and tolerations
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app: rabbitmq-ha
+        topologyKey: kubernetes.io/hostname
+
+# Additional labels
+labels:
+  app: rabbitmq-ha
+  version: "3.12.0"
+  component: message-broker
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 3 * * *"
+  retention: "7d"
+  storage:
+    storageClass: "standard"
+    size: "5Gi"
+
+# Management UI configuration
+management:
+  enabled: true
+  nodePort: 31672
+  
+# Monitoring and health checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Replicas configuration
+replicaCount: 3

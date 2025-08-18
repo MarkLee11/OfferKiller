@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vector-database.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vector-database.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.chromaPort }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: {{ .Values.service.chromaGrpcPort }}
+    targetPort: grpc
+    protocol: TCP
+    name: grpc
+  {{- if .Values.qdrant.enabled }}
+  - port: {{ .Values.service.qdrantPort }}
+    targetPort: qdrant-http
+    protocol: TCP
+    name: qdrant-http
+  - port: {{ .Values.service.qdrantGrpcPort }}
+    targetPort: qdrant-grpc
+    protocol: TCP
+    name: qdrant-grpc
+  {{- end }}
+  selector:
+    {{- include "vector-database.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vector-database.fullname" . }}-nodeport
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vector-database.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
+  - port: {{ .Values.service.chromaPort }}
+    targetPort: http
+    protocol: TCP
+    name: http
+    nodePort: 30800
+  selector:
+    {{- include "vector-database.selectorLabels" . | nindent 4 }}

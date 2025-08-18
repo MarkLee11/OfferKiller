@@ -1,0 +1,24 @@
+apiVersion: v2
+name: redis-cluster
+description: High-availability Redis cluster for OfferKiller
+type: application
+version: 1.0.0
+appVersion: "7.2.0"
+keywords:
+  - redis
+  - cache
+  - database
+  - nosql
+home: https://redis.io/
+sources:
+  - https://github.com/redis/redis
+maintainers:
+  - name: OfferKiller Team
+    email: devops@offerkiller.com
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    version: 2.x.x
+annotations:
+  category: Database
+  licenses: BSD-3-Clause
