@@ -113,12 +113,17 @@ chromadb:
   configuration:
     host: "0.0.0.0"
     port: 8000
+    cors_allow_origins: ["*"]
     log_level: "INFO"
     anonymized_telemetry: false
     chroma_db_impl: "chromadb.db.duckdb.DuckDB"
     chroma_sysdb_impl: "chromadb.sysdb.impl.sqlite.SqliteDB"
     chroma_producer_impl: "chromadb.ingest.impl.simple.SimpleProducer"
     chroma_consumer_impl: "chromadb.ingest.impl.simple.SimpleConsumer"
+    chroma_segment_cache_policy: "LRU"
+    chroma_segment_cache_size: 100
+    max_batch_size: 1000
+    chroma_server_grpc_port: 50051
   
   auth:
     enabled: false
@@ -129,6 +134,12 @@ service:
   type: ClusterIP
   chromaPort: 8000
   chromaGrpcPort: 50051
+
+# Security context
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  fsGroup: 0
 
 # Disable advanced features for minimal deployment
 autoscaling:
@@ -148,6 +159,26 @@ podDisruptionBudget:
 
 backup:
   enabled: false
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: "/api/v1/heartbeat"
+    port: 8000
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: "/api/v1/heartbeat"
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 
 # Remove init containers for simplicity
 initContainers: []
