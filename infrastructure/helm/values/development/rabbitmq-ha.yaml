@@ -1,4 +1,4 @@
-# RabbitMQ Development Environment Configuration
+# RabbitMQ Development Environment Configuration (Standalone Mode)
 rabbitmq:
   # Reduced resources for development
   resources:
@@ -9,36 +9,43 @@ rabbitmq:
       memory: "512Mi"
       cpu: "500m"
   
+  # Disable clustering for standalone mode
+  clustering:
+    enabled: false
+    rebalance: false
+    forceBoot: false
+  
   # Smaller persistence
   persistence:
     size: "4Gi"
   
-  # Simplified configuration for development
+  # Simple standalone configuration for development
   configuration: |
-    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
-    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
-    cluster_formation.k8s.address_type = hostname
-    cluster_formation.k8s.service_name = rabbitmq-ha-headless
-    cluster_formation.node_cleanup.interval = 30
-    cluster_formation.node_cleanup.only_log_warning = true
-    cluster_partition_handling = autoheal
-    queue_master_locator = min-masters
-    vm_memory_high_watermark.relative = 0.8
-    disk_free_limit.relative = 1.0
+    # Basic networking
     listeners.tcp.default = 5672
     management.tcp.port = 15672
+    
+    # Memory and disk limits
+    vm_memory_high_watermark.relative = 0.8
+    disk_free_limit.relative = 1.0
+    
+    # Logging
     log.file.level = info
+    
+    # Management plugin
     management.rates_mode = basic
+    
+    # Default configuration
     default_vhost = /
     default_user = offerkilleruser
     default_pass = rabbitmq123change
 
+# Single node for development (localhost mode)
+replicaCount: 1
+
 # Disable backup in development
 backup:
   enabled: false
-
-# Reduced replicas for development
-replicaCount: 2
 
 # Development-specific labels
 labels:
@@ -46,11 +53,11 @@ labels:
   app: rabbitmq-ha
   version: "3.12.0"
 
-# Simplified policies for development
-policies:
-  - name: "ha-policy-dev"
-    pattern: ".*"
-    definition:
-      ha-mode: "exactly"
-      ha-params: 1
-      ha-sync-mode: "automatic"
+# No HA policies for standalone mode
+policies: []
+
+# Simplified plugins for development
+plugins:
+  list: |
+    rabbitmq_management
+    rabbitmq_prometheus

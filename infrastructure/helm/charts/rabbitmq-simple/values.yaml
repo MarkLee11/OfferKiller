@@ -1,0 +1,70 @@
+# Simple RabbitMQ Configuration (Single Node)
+image:
+  registry: docker.io
+  repository: rabbitmq
+  tag: "3.12.0-management-alpine"
+  pullPolicy: IfNotPresent
+
+# Authentication
+auth:
+  username: "offerkilleruser"
+  password: "rabbitmq123change"
+
+# Resources
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: "2Gi"
+  accessModes:
+    - ReadWriteOnce
+
+# Service
+service:
+  type: ClusterIP
+  amqpPort: 5672
+  managementPort: 15672
+
+# NodePort for external access
+nodePort:
+  enabled: true
+  managementPort: 31672
+
+# Single replica
+replicaCount: 1
+
+# Health checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Security context
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+
+# Labels
+labels:
+  app: rabbitmq-simple
+  version: "3.12.0"
+  component: message-broker
+  environment: development
