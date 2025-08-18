@@ -1,0 +1,10 @@
+ler]# # 你会看到类似这样的输出（数据是base64编码的）：
+[root@centos offerkiller]# # apiVersion: v1
+[root@centos offerkiller]# # data:
+[root@centos offerkiller]# #   password: cmFiYml0bXExMjNjaGFuZ2U=
+[root@centos offerkiller]# #   username: b2ZmZXJraWxsZXJ1c2Vy
+[root@centos offerkiller]# # kind: Secret
+[root@centos offerkiller]# # metadata:
+[root@centos offerkiller]# #   name: rabbitmq-credentials
+[root@centos offerkiller]# #   namespace: offerkiller-app
+[root@centos offerkiller]# # ...

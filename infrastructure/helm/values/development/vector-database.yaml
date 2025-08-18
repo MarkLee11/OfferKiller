@@ -12,6 +12,11 @@ chromadb:
   # Smaller persistence
   persistence:
     size: "10Gi"
+    enabled: true
+    storageClass: "standard"
+    accessModes:
+      - ReadWriteOnce
+    mountPath: "/chroma/chroma"
   
   # Development-specific configuration
   configuration:
@@ -22,6 +27,16 @@ chromadb:
     anonymized_telemetry: false
     max_batch_size: 1000
     chroma_segment_cache_size: 100
+    chroma_segment_cache_policy: "LRU"
+    chroma_server_grpc_port: 50051
+    chroma_db_impl: "chromadb.db.duckdb.DuckDB"
+    chroma_sysdb_impl: "chromadb.sysdb.impl.sqlite.SqliteDB"
+    chroma_producer_impl: "chromadb.ingest.impl.simple.SimpleProducer"
+    chroma_consumer_impl: "chromadb.ingest.impl.simple.SimpleConsumer"
+  
+  # Disable auth in development
+  auth:
+    enabled: false
 
 # Disable Qdrant in development
 qdrant:

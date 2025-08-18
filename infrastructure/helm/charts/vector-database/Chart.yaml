@@ -3,7 +3,7 @@ name: vector-database
 description: High-availability vector database cluster for OfferKiller AI operations
 type: application
 version: 1.0.0
-appVersion: "0.4.0"
+appVersion: "0.4.15"
 keywords:
   - vector
   - database
@@ -17,10 +17,6 @@ sources:
 maintainers:
   - name: OfferKiller Team
     email: devops@offerkiller.com
-# dependencies:
-  # - name: common
-  #   repository: https://charts.bitnami.com/bitnami
-  #   version: 2.x.x
 annotations:
   category: Database
   licenses: Apache-2.0

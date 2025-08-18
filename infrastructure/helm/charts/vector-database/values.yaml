@@ -218,7 +218,6 @@ initContainers:
       - |
         echo "Initializing ChromaDB storage..."
         mkdir -p /chroma/chroma
-        chown -R 1000:1000 /chroma/chroma
         echo "Initialization complete"
     volumeMounts:
       - name: data

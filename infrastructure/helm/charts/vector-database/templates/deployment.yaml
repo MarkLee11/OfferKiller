@@ -28,14 +28,18 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.initContainers }}
       initContainers:
       {{- range .Values.initContainers }}
       - name: {{ .name }}
         image: {{ .image }}
         command:
           {{- toYaml .command | nindent 10 }}
+        {{- if .volumeMounts }}
         volumeMounts:
           {{- toYaml .volumeMounts | nindent 10 }}
+        {{- end }}
+      {{- end }}
       {{- end }}
       containers:
       - name: chromadb
@@ -67,6 +71,18 @@ spec:
           value: {{ .Values.chromadb.configuration.chroma_segment_cache_size | quote }}
         - name: PERSIST_DIRECTORY
           value: {{ .Values.chromadb.persistence.mountPath | quote }}
+        - name: CHROMA_SYSDB_IMPL
+          value: {{ .Values.chromadb.configuration.chroma_sysdb_impl | quote }}
+        - name: CHROMA_PRODUCER_IMPL
+          value: {{ .Values.chromadb.configuration.chroma_producer_impl | quote }}
+        - name: CHROMA_CONSUMER_IMPL
+          value: {{ .Values.chromadb.configuration.chroma_consumer_impl | quote }}
+        {{- if .Values.chromadb.auth.enabled }}
+        - name: CHROMA_SERVER_AUTH_PROVIDER
+          value: {{ .Values.chromadb.auth.provider | quote }}
+        - name: CHROMA_SERVER_AUTH_CREDENTIALS
+          value: {{ .Values.chromadb.auth.credentials | quote }}
+        {{- end }}
         volumeMounts:
         - name: data
           mountPath: {{ .Values.chromadb.persistence.mountPath }}
