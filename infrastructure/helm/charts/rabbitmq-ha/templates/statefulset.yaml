@@ -61,9 +61,13 @@ spec:
         - name: RABBITMQ_USE_LONGNAME
           value: "true"
         - name: RABBITMQ_NODENAME
-          value: "rabbit@$(hostname -f)"
+          value: "rabbit@$(hostname).$(K8S_SERVICE_NAME).$(POD_NAMESPACE).svc.cluster.local"
         - name: K8S_SERVICE_NAME
           value: {{ include "rabbitmq-ha.fullname" . }}-headless
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: RABBITMQ_NODE_PORT
           value: "5672"
         volumeMounts:

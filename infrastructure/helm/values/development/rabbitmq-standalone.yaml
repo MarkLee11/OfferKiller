@@ -1,0 +1,85 @@
+# Standalone RabbitMQ for Development (No Clustering)
+rabbitmq:
+  # Reduced resources for development
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Disable clustering completely
+  clustering:
+    enabled: false
+    rebalance: false
+    forceBoot: false
+  
+  # Authentication
+  auth:
+    username: "offerkilleruser"
+    password: "rabbitmq123change"
+    erlangCookie: "simple-dev-cookie"
+  
+  # Simple persistence
+  persistence:
+    size: "2Gi"
+  
+  # Minimal configuration without clustering
+  configuration: |
+    # Basic listeners
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    
+    # Memory and disk limits
+    vm_memory_high_watermark.relative = 0.8
+    disk_free_limit.relative = 1.0
+    
+    # Logging
+    log.file.level = info
+    
+    # Management plugin
+    management.rates_mode = basic
+    
+    # Default vhost and user
+    default_vhost = /
+    default_user = offerkilleruser
+    default_pass = rabbitmq123change
+
+# Plugins - minimal set
+plugins:
+  list: |
+    rabbitmq_management
+    rabbitmq_prometheus
+
+# No HA policies for standalone
+policies: []
+
+# Single replica only
+replicaCount: 1
+
+# Disable backup in development
+backup:
+  enabled: false
+
+# Relaxed health checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 15
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+# Development labels
+labels:
+  environment: "development"
+  app: rabbitmq-ha
+  version: "3.12.0"
+  mode: "standalone"

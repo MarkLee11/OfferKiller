@@ -1,0 +1,61 @@
+# Simplified RabbitMQ for Development (Single Node)
+rabbitmq:
+  # Reduced resources for development
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  # Single node configuration (no clustering)
+  clustering:
+    enabled: false
+  
+  # Simple persistence
+  persistence:
+    size: "2Gi"
+  
+  # Basic configuration without clustering
+  configuration: |
+    listeners.tcp.default = 5672
+    management.tcp.port = 15672
+    log.file.level = info
+    management.rates_mode = basic
+    default_vhost = /
+    default_user = offerkilleruser
+    default_pass = rabbitmq123change
+    vm_memory_high_watermark.relative = 0.8
+    disk_free_limit.relative = 1.0
+
+# Disable backup in development
+backup:
+  enabled: false
+
+# Single replica for development
+replicaCount: 1
+
+# Development-specific labels
+labels:
+  environment: "development"
+  app: rabbitmq-ha
+  version: "3.12.0"
+
+# No HA policies for single node
+policies: []
+
+# Disable clustering health checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
