@@ -17,10 +17,10 @@ sources:
 maintainers:
   - name: OfferKiller Team
     email: devops@offerkiller.com
-dependencies:
-  - name: common
-    repository: https://charts.bitnami.com/bitnami
-    version: 2.x.x
+# dependencies:
+  # - name: common
+  #   repository: https://charts.bitnami.com/bitnami
+  #   version: 2.x.x
 annotations:
   category: Database
   licenses: Apache-2.0
